@@ -237,6 +237,7 @@ function cleanTables(db) {
   )
 }
 
+
 function seedUsers(db, users) {
   const preppedUsers = users.map(user => ({
     ...user,
@@ -244,7 +245,6 @@ function seedUsers(db, users) {
   }))
   return db.into('thingful_users').insert(preppedUsers)
     .then(() => 
-      // update the auto sequence to stay in sync
       db.raw(
         `SELECT setval('thingful_users_id_seq', ?)`,
         [users[users.length - 1].id]
@@ -253,16 +253,21 @@ function seedUsers(db, users) {
 }
 
 function seedThingsTables(db, users, things, reviews=[]) {
-
   return db.transaction(async trx => {
     await seedUsers(trx, users)
     await trx.into('thingful_things').insert(things)
-    //update the auto seq to match the forced id values
-
     await trx.raw(
       `SELECT setval('thingful_things_id_seq', ?)`,
       [things[things.length - 1].id],
     )
+
+    if(reviews.length) {
+      await trx.into('thingful_reviews').insert(reviews)
+      await trx.raw(
+        `SELECT setval('thingful_reviews_id_seq', ?)`,
+        [reviews[reviews.length - 1].id]
+      )
+    }
   })
 }
 
